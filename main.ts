@@ -1,60 +1,60 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import {Hotkey, Notice, Platform, Plugin, PluginSettingTab, Setting} from 'obsidian';
 
-interface MyPluginSettings {
-	mySetting: string;
+interface KeyPromoterSettings {
+	showUnassigned: boolean;
+	showAssigned: boolean;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+const DEFAULT_SETTINGS: KeyPromoterSettings = {
+	showUnassigned: true,
+	showAssigned: true
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+
+export default class KeyPromoterPlugin extends Plugin {
+	settings: KeyPromoterSettings;
 
 	async onload() {
-		console.log('loading plugin');
-
+		console.log('loading plugin key promoter');
 		await this.loadSettings();
 
-		this.addRibbonIcon('dice', 'Sample Plugin', () => {
-			new Notice('This is a notice!');
-		});
+		this.addSettingTab(new KeyPromoterSettingsTab(this));
 
-		this.addStatusBarItem().setText('Status Bar Text');
+		this.registerDomEvent(document, 'click', (event: MouseEvent) => {
+			if(event.target == undefined) return;
+			//@ts-ignore
+			const label = event.target.ariaLabel;
+			if(label == undefined) return;
 
-		this.addCommand({
-			id: 'open-sample-modal',
-			name: 'Open Sample Modal',
-			// callback: () => {
-			// 	console.log('Simple Callback');
-			// },
-			checkCallback: (checking: boolean) => {
-				let leaf = this.app.workspace.activeLeaf;
-				if (leaf) {
-					if (!checking) {
-						new SampleModal(this.app).open();
+			//@ts-ignore
+			let commands = Object.entries(this.app.commands.commands);
+			commands = commands.filter((command: any[] ) => {
+				/*
+				due to different capitalisation and different text content check for contains, not equals
+				i.e. the button named 'close' executes the command 'close active pane'
+				 */
+				return command[1].name.toLowerCase().contains(label.toLowerCase());
+			});
+			commands.forEach((command) => {
+				const commandName = command[1].name;
+				if(command[1].hotkeys == undefined) {
+					if(this.settings.showUnassigned) {
+						new Notice("Hotkey for " + commandName + " is not set");
 					}
-					return true;
+					return;
 				}
-				return false;
-			}
+				if(this.settings.showAssigned) {
+					command[1].hotkeys.forEach((hotkey: Hotkey) => {
+						const modifiers = hotkey.modifiers.join("+").replace('Mod',  Platform.isMacOS ? 'Cmd' : 'Ctrl');
+						new Notice("Hotkey for " + commandName + " is " + modifiers + " + " + hotkey.key);
+					});
+				}
+			});
 		});
-
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		this.registerCodeMirror((cm: CodeMirror.Editor) => {
-			console.log('codemirror', cm);
-		});
-
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
 	onunload() {
-		console.log('unloading plugin');
+		console.log('unloading plugin key promoter');
 	}
 
 	async loadSettings() {
@@ -66,27 +66,11 @@ export default class MyPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
+class KeyPromoterSettingsTab extends PluginSettingTab {
+	plugin: KeyPromoterPlugin;
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		let {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
+	constructor(plugin: KeyPromoterPlugin) {
+		super(plugin.app, plugin);
 		this.plugin = plugin;
 	}
 
@@ -95,18 +79,30 @@ class SampleSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
+		containerEl.createEl('h2', {text: 'Key Promoter Settings'});
 
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue('')
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
+			.setName('Show for assigned commands')
+			.setDesc('show a notification for commands that do have a hotkey assigned')
+			.addToggle(toggle => {
+				toggle
+					.setValue(this.plugin.settings.showAssigned)
+					.onChange(async (value) => {
+						this.plugin.settings.showAssigned = value;
+						await this.plugin.saveSettings();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName('Show for unassigned commands')
+			.setDesc('show a notification for commands that don\'t have a hotkey assigned')
+			.addToggle(toggle => {
+				toggle
+					.setValue(this.plugin.settings.showUnassigned)
+					.onChange(async (value) => {
+						this.plugin.settings.showUnassigned = value;
+						await this.plugin.saveSettings();
+					});
+			});
 	}
 }
