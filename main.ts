@@ -1,4 +1,4 @@
-import {Hotkey, Notice, Platform, Plugin, PluginSettingTab, Setting} from 'obsidian';
+import {Command, Hotkey, Notice, Platform, Plugin, PluginSettingTab, Setting} from 'obsidian';
 
 interface KeyPromoterSettings {
 	showUnassigned: boolean;
@@ -22,31 +22,39 @@ export default class KeyPromoterPlugin extends Plugin {
 
 		this.registerDomEvent(document, 'click', (event: MouseEvent) => {
 			if(event.target == undefined) return;
-			//@ts-ignore
-			const label = event.target.ariaLabel;
-			if(label == undefined) return;
+			//don't handle anything if there is nothing to show.
+			if(!this.settings.showAssigned && !this.settings.showUnassigned) return;
 
 			//@ts-ignore
-			let commands = Object.entries(this.app.commands.commands);
-			commands = commands.filter((command: any[] ) => {
+			let label = event.target.ariaLabel;
+			//@ts-ignore
+			if(!label) label = event.target.innerText;
+			if(!label) return;
+
+			//ignore all clicks that happen in settings
+			//@ts-ignore
+			if(event.target.offsetParent && event.target.offsetParent.classList.contains("mod-settings")) return;
+
+			//@ts-ignore
+			let commands: Command[] = Object.values(this.app.commands.commands);
+			commands = commands.filter((command: Command) => {
 				/*
 				due to different capitalisation and different text content check for contains, not equals
 				i.e. the button named 'close' executes the command 'close active pane'
 				 */
-				return command[1].name.toLowerCase().contains(label.toLowerCase());
+				return command.name.toLowerCase().contains(label.toLowerCase());
 			});
 			commands.forEach((command) => {
-				const commandName = command[1].name;
-				if(command[1].hotkeys == undefined) {
+				if(command.hotkeys == undefined) {
 					if(this.settings.showUnassigned) {
-						new Notice("Hotkey for " + commandName + " is not set");
+						new Notice("Hotkey for " + command.name + " is not set");
 					}
 					return;
 				}
 				if(this.settings.showAssigned) {
-					command[1].hotkeys.forEach((hotkey: Hotkey) => {
+					command.hotkeys.forEach((hotkey: Hotkey) => {
 						const modifiers = hotkey.modifiers.join("+").replace('Mod',  Platform.isMacOS ? 'Cmd' : 'Ctrl');
-						new Notice("Hotkey for " + commandName + " is " + modifiers + " + " + hotkey.key);
+						new Notice("Hotkey for " + command.name + " is " + modifiers + " + " + hotkey.key);
 					});
 				}
 			});
@@ -95,7 +103,7 @@ class KeyPromoterSettingsTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Show for unassigned commands')
-			.setDesc('show a notification for commands that don\'t have a hotkey assigned')
+			.setDesc('show a notification for commands that do not have a hotkey assigned')
 			.addToggle(toggle => {
 				toggle
 					.setValue(this.plugin.settings.showUnassigned)
