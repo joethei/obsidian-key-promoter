@@ -27,6 +27,8 @@ export default class KeyPromoterPlugin extends Plugin {
 			//don't handle anything if there is nothing to show.
 			if(!this.settings.showAssigned && !this.settings.showUnassigned) return;
 
+			console.log(event);
+
 			//@ts-ignore
 			let label = event.target.ariaLabel;
 			//@ts-ignore
@@ -40,6 +42,8 @@ export default class KeyPromoterPlugin extends Plugin {
 			if(offsetParent) {
 				if(offsetParent.classList.contains("mod-settings")) return;
 				if(offsetParent.classList.contains("nav-files-container")) return;
+				if(offsetParent.classList.contains("markdown-preview-view")) return;
+				if(offsetParent.classList.contains("CodeMirror-line")) return;
 			}
 
 			//@ts-ignore
