@@ -73,8 +73,7 @@ export class KeyPromoterSettingsTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName("Export template")
-            .setDesc('When creating a note from a rss feed item this gets processed. ' +
-                'Available variables are: {{commandId}}, {{commandName}}, {{hotkey}}')
+            .setDesc('Available variables are: {{commandId}}, {{commandName}}, {{hotkey}}')
             .addTextArea((textArea: TextAreaComponent) => {
                 textArea
                     .setValue(this.plugin.settings.template)
