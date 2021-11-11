@@ -6,12 +6,14 @@ export interface KeyPromoterSettings {
     showAssigned: boolean;
     threshold: number;
     template: string;
+    notificationTimeout: number;
 }
 
 export const DEFAULT_SETTINGS: KeyPromoterSettings = {
     showUnassigned: true,
     showAssigned: true,
     threshold: 0,
+    notificationTimeout: 5,
     template: "{{commandId}} - {{commandName}} - {{hotkey}}",
 }
 
@@ -24,7 +26,7 @@ export class KeyPromoterSettingsTab extends PluginSettingTab {
     }
 
     display(): void {
-        let {containerEl} = this;
+        const {containerEl} = this;
 
         containerEl.empty();
 
@@ -66,6 +68,23 @@ export class KeyPromoterSettingsTab extends PluginSettingTab {
                             return;
                         }
                         this.plugin.settings.threshold = Number(value);
+                        await this.plugin.saveSettings();
+                    });
+
+            });
+
+        new Setting(containerEl)
+            .setName('Notification timeout')
+            .setDesc('show notifications for x seconds')
+            .addText(text => {
+                text
+                    .setValue(String(this.plugin.settings.notificationTimeout))
+                    .onChange(async (value) => {
+                        if(isNaN(Number(value)) || value === undefined) {
+                            new Notice("please specify a valid number");
+                            return;
+                        }
+                        this.plugin.settings.notificationTimeout = Number(value);
                         await this.plugin.saveSettings();
                     });
 

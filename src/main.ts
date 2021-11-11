@@ -5,7 +5,7 @@ import {DEFAULT_SETTINGS, KeyPromoterSettings, KeyPromoterSettingsTab} from "./s
 export default class KeyPromoterPlugin extends Plugin {
 	settings: KeyPromoterSettings;
 
-	async onload() {
+	async onload() : Promise<void> {
 		console.log('loading plugin key promoter');
 		await this.loadSettings();
 
@@ -21,7 +21,7 @@ export default class KeyPromoterPlugin extends Plugin {
 				}
 
 				//@ts-ignore
-				let commands: Command[] = Object.values(this.app.commands.commands);
+				const commands: Command[] = Object.values(this.app.commands.commands);
 				let content = "";
 				commands.forEach((command: Command) => {
 					let hotkeys = "";
@@ -118,29 +118,29 @@ export default class KeyPromoterPlugin extends Plugin {
 			commands.forEach((command) => {
 				if(command.hotkeys == undefined) {
 					if(this.settings.showUnassigned) {
-						new Notice("Hotkey for \"" + command.name + "\" is not set");
+						new Notice("Hotkey for \"" + command.name + "\" is not set", this.settings.notificationTimeout * 1000);
 					}
 					return;
 				}
 				if(this.settings.showAssigned) {
 					command.hotkeys.forEach((hotkey: Hotkey) => {
 						const modifiers = hotkey.modifiers.join("+").replace('Mod',  Platform.isMacOS ? 'Cmd' : 'Ctrl');
-						new Notice("Hotkey for \"" + command.name + "\" is \"" + modifiers + " + " + hotkey.key + "\"");
+						new Notice("Hotkey for \"" + command.name + "\" is \"" + modifiers + " + " + hotkey.key + "\"", this.settings.notificationTimeout * 1000);
 					});
 				}
 			});
 		});
 	}
 
-	onunload() {
+	onunload() : void {
 		console.log('unloading plugin key promoter');
 	}
 
-	async loadSettings() {
+	async loadSettings() : Promise<void> {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
-	async saveSettings() {
+	async saveSettings() : Promise<void> {
 		await this.saveData(this.settings);
 	}
 }
