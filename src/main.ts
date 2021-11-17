@@ -87,6 +87,8 @@ export default class KeyPromoterPlugin extends Plugin {
 				if(offsetParent.classList.contains("mod-settings")) return;
 				if(offsetParent.classList.contains("nav-files-container")) return;
 				if(offsetParent.classList.contains("markdown-preview-view")) return;
+				if(offsetParent.classList.contains("markdown-source-view")) return;
+				if(offsetParent.classList.contains("cm-editor")) return;
 				if(offsetParent.classList.contains("CodeMirror-line")) return;
 			}
 
