@@ -90,6 +90,7 @@ export default class KeyPromoterPlugin extends Plugin {
 				if(offsetParent.classList.contains("markdown-source-view")) return;
 				if(offsetParent.classList.contains("cm-editor")) return;
 				if(offsetParent.classList.contains("CodeMirror-line")) return;
+				if(offsetParent.classList.contains("modal")) return;
 			}
 
 			//@ts-ignore
