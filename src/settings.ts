@@ -82,7 +82,6 @@ export class KeyPromoterSettingsTab extends PluginSettingTab {
 
         const descriptionDesc = new DocumentFragment();
         descriptionDesc.createDiv().setText("Show name and Win/Mac shortcuts of any command you invoke");
-        descriptionDesc.createSpan({cls: "mod-warning"}).setText("Changing this option requires a restart to become effective");
 
         new Setting(containerEl)
             .setName('Description of actions')

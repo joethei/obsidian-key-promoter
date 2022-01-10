@@ -1,6 +1,6 @@
 {
   "name": "key-promoter",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Obsidian plugin to promote keyboard shortcuts",
   "main": "main.js",
   "scripts": {
