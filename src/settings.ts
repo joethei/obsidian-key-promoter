@@ -1,12 +1,16 @@
 import {Notice, PluginSettingTab, Setting, TextAreaComponent} from "obsidian";
 import KeyPromoterPlugin from "./main";
 
+
 export interface KeyPromoterSettings {
     showUnassigned: boolean;
     showAssigned: boolean;
     threshold: number;
     template: string;
     notificationTimeout: number;
+    descriptionOfActions: boolean;
+    mouseStatistics: {[index: string]: number},
+    keyboardStatistics: {[index: string]: number}
 }
 
 export const DEFAULT_SETTINGS: KeyPromoterSettings = {
@@ -15,6 +19,9 @@ export const DEFAULT_SETTINGS: KeyPromoterSettings = {
     threshold: 0,
     notificationTimeout: 5,
     template: "{{commandId}} - {{commandName}} - {{hotkey}}",
+    descriptionOfActions: false,
+    mouseStatistics: {},
+    keyboardStatistics: {},
 }
 
 export class KeyPromoterSettingsTab extends PluginSettingTab {
@@ -71,6 +78,22 @@ export class KeyPromoterSettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     });
 
+            });
+
+        const descriptionDesc = new DocumentFragment();
+        descriptionDesc.createDiv().setText("Show name and Win/Mac shortcuts of any command you invoke");
+        descriptionDesc.createSpan({cls: "mod-warning"}).setText("Changing this option requires a restart to become effective");
+
+        new Setting(containerEl)
+            .setName('Description of actions')
+            .setDesc(descriptionDesc)
+            .addToggle(toggle => {
+                toggle
+                    .setValue(this.plugin.settings.descriptionOfActions)
+                    .onChange(async (value) => {
+                        this.plugin.settings.descriptionOfActions = value;
+                        await this.plugin.saveSettings();
+                    });
             });
 
         new Setting(containerEl)

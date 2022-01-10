@@ -1,7 +1,7 @@
 {
 	"id": "key-promoter",
 	"name": "Key Promoter",
-	"version": "1.1.4",
+	"version": "1.2.0",
 	"minAppVersion": "0.9.12",
 	"description": "Learn keyboard shortcuts by showing them when using the mouse",
 	"author": "Johannes Theiner",

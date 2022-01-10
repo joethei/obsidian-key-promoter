@@ -1,6 +1,6 @@
 {
   "name": "key-promoter",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "description": "Obsidian plugin to promote keyboard shortcuts",
   "main": "main.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "lint": "eslint . --ext .ts"
   },
   "keywords": [],
-  "author": "joethei",
+  "author": "Johannes Theiner",
   "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-commonjs": "^18.0.0",
@@ -22,6 +22,7 @@
     "obsidian": "^0.12.0",
     "rollup": "^2.32.1",
     "tslib": "^2.2.0",
-    "typescript": "^4.2.4"
+    "typescript": "^4.2.4",
+    "monkey-around": "^2.3.0"
   }
 }
