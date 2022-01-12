@@ -24,6 +24,9 @@ export default class KeyPromoterPlugin extends Plugin {
 
                     //@ts-ignore
                     const command: Command = this.app.commands.findCommand(args[0]);
+                    if(!command) {
+                        return result;
+                    }
                     //@ts-ignore
                     const keyPromoterPlugin: KeyPromoterPlugin = this.app.plugins.plugins["key-promoter"];
 
@@ -39,20 +42,23 @@ export default class KeyPromoterPlugin extends Plugin {
                     }
 
                     const hotkeys: string[] = [];
-                    command.hotkeys.forEach((hotkey: Hotkey) => {
-                        let hotkeyDescription = "";
-                        hotkeyDescription += hotkey.modifiers.map(modifier => {
-                            if (modifier === "Mod") {
-                                return "Ctrl/Cmd";
-                            }
-                            if (modifier === "Meta") {
-                                return "Win/Cmd";
-                            }
-                            return modifier;
-                        }).join("+");
-                        hotkeyDescription += "+" + hotkey.key;
-                        hotkeys.push(hotkeyDescription);
-                    });
+                    if(command.hotkeys) {
+                        command.hotkeys.forEach((hotkey: Hotkey) => {
+                            let hotkeyDescription = "";
+                            hotkeyDescription += hotkey.modifiers.map(modifier => {
+                                if (modifier === "Mod") {
+                                    return "Ctrl/Cmd";
+                                }
+                                if (modifier === "Meta") {
+                                    return "Win/Cmd";
+                                }
+                                return modifier;
+                            }).join("+");
+                            hotkeyDescription += "+" + hotkey.key;
+                            hotkeys.push(hotkeyDescription);
+                        });
+                    }
+
 
                     const timeout = keyPromoterPlugin.settings.notificationTimeout;
                     new Notice(command.name + " via " + hotkeys.join(), timeout * 1000);
