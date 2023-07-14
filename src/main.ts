@@ -3,6 +3,26 @@ import {DEFAULT_SETTINGS, KeyPromoterSettings, KeyPromoterSettingsTab} from "./s
 import {around, dedupe} from "monkey-around";
 import {StatisticsModal} from "./StatisticsModal";
 
+declare global {
+    function sleep(ms: number): Promise<void>;
+}
+
+declare module "obsidian" {
+    interface App {
+        setting: SettingModal
+    }
+    interface SettingModal {
+        open(): void;
+        openTabById(id: string): HotkeySettingTab;
+    }
+    interface HotkeySettingTab {
+        setQuery(query: string): void;
+    }
+    interface Notice {
+        noticeEl: HTMLElement;
+    }
+}
+
 
 export default class KeyPromoterPlugin extends Plugin {
     settings: KeyPromoterSettings;
@@ -185,14 +205,24 @@ export default class KeyPromoterPlugin extends Plugin {
 
                 if (command.hotkeys == undefined) {
                     if (this.settings.showUnassigned) {
-                        new Notice("Hotkey for \"" + command.name + "\" is not set", this.settings.notificationTimeout * 1000);
+                        const notice = new Notice("Hotkey for \"" + command.name + "\" is not set", this.settings.notificationTimeout * 1000);
+                        notice.noticeEl.onClickEvent(async () => {
+                            this.app.setting.open();
+                            const hotkeySettings = this.app.setting.openTabById('hotkeys');
+                            hotkeySettings.setQuery(command.id);
+                        });
                     }
                     return;
                 }
                 if (this.settings.showAssigned) {
                     command.hotkeys.forEach((hotkey: Hotkey) => {
                         const modifiers = hotkey.modifiers.join("+").replace('Mod', Platform.isMacOS ? 'Cmd' : 'Ctrl');
-                        new Notice("Hotkey for \"" + command.name + "\" is \"" + modifiers + " + " + hotkey.key + "\"", this.settings.notificationTimeout * 1000);
+                        const notice = new Notice("Hotkey for \"" + command.name + "\" is \"" + modifiers + " + " + hotkey.key + "\"", this.settings.notificationTimeout * 1000);
+                        notice.noticeEl.onClickEvent(async () => {
+                            this.app.setting.open();
+                            const hotkeySettings = this.app.setting.openTabById('hotkeys');
+                            hotkeySettings.setQuery(command.id);
+                        });
                     });
                 }
             });
