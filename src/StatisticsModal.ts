@@ -1,4 +1,4 @@
-import {Command, Hotkey, Modal, Platform} from "obsidian";
+import {Command, Modal} from "obsidian";
 import KeyPromoterPlugin from "./main";
 
 export class StatisticsModal extends Modal {
@@ -33,25 +33,13 @@ export class StatisticsModal extends Modal {
         });
 
         mouseMap.forEach((value, key) => {
-            //@ts-ignore
             const command: Command = this.plugin.app.commands.findCommand(key);
+            if(!command) return;
             const tableRow = mouseTableContent.createEl("tr");
             tableRow.createEl("td", {text: String(value)});
             tableRow.createEl("td", {text: command.name});
-            if(command.hotkeys) {
-                let hotkeys = "";
-                command.hotkeys.forEach((hotkey: Hotkey) => {
-                    if(hotkey.modifiers) {
-                        const modifiers = hotkey.modifiers.join("+")
-                            .replace('Mod',  Platform.isMacOS ? 'Cmd' : 'Ctrl')
-                            .replace("Meta", !Platform.isMacOS ? "Win" : "Cmd");
-                        hotkeys = hotkeys.concat(modifiers + " + " + hotkey.key);
-                    }else {
-                        hotkeys = hotkeys.concat(hotkey.key);
-                    }
-                });
-                tableRow.createEl("td", {text: hotkeys});
-            }else tableRow.createEl("td");
+            const hotkeys = this.plugin.getHotkeysForCommand(command);
+            tableRow.createEl("td", {text: hotkeys.join()});
         });
 
         const keyboardStatistics = contentEl.createDiv("keyboard");
@@ -59,7 +47,7 @@ export class StatisticsModal extends Modal {
         keyboardStatistics.createEl("h2", {text: "Keyboard"});
         const keyboardTable = keyboardStatistics.createEl("table");
         const keyboardTableHeader = keyboardTable.createTHead();
-        keyboardTableHeader.createEl("th", {text: "Usage Count"});
+        keyboardTableHeader.createEl("th", {text: "Usage count"});
         keyboardTableHeader.createEl("th", {text: "Command"});
         keyboardTableHeader.createEl("th", {text: "Hotkey"});
 
@@ -70,29 +58,12 @@ export class StatisticsModal extends Modal {
         });
 
         keyboardMap.forEach((value, key) => {
-            //@ts-ignore
             const command: Command = this.plugin.app.commands.findCommand(key);
             const tableRow = keyboardTableContent.createEl("tr");
             tableRow.createEl("td", {text: String(value)});
             tableRow.createEl("td", {text: command.name});
-            if(command.hotkeys) {
-                let hotkeys = "";
-                command.hotkeys.forEach((hotkey: Hotkey) => {
-                    if(hotkey.modifiers) {
-                        const modifiers = hotkey.modifiers.join("+")
-                            .replace('Mod',  Platform.isMacOS ? 'Cmd' : 'Ctrl')
-                            .replace("Meta", !Platform.isMacOS ? "Win" : "Cmd");
-                        hotkeys = hotkeys.concat(modifiers + " + " + hotkey.key);
-                    }else {
-                        hotkeys = hotkeys.concat(hotkey.key);
-                    }
-                });
-                tableRow.createEl("td", {text: hotkeys});
-            }else tableRow.createEl("td");
+            const hotkeys = this.plugin.getHotkeysForCommand(command);
+            tableRow.createEl("td", {text: hotkeys.join()});
         });
-    }
-
-    onClose() {
-        super.onClose();
     }
 }

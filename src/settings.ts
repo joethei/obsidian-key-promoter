@@ -18,7 +18,7 @@ export const DEFAULT_SETTINGS: KeyPromoterSettings = {
     showAssigned: true,
     threshold: 0,
     notificationTimeout: 5,
-    template: "{{commandId}} - {{commandName}} - {{hotkey}}",
+    template: "`{{commandId}}` - {{commandName}} - `{{hotkey}}`\n",
     descriptionOfActions: false,
     mouseStatistics: {},
     keyboardStatistics: {},
@@ -36,8 +36,6 @@ export class KeyPromoterSettingsTab extends PluginSettingTab {
         const {containerEl} = this;
 
         containerEl.empty();
-
-        containerEl.createEl('h2', {text: 'Key Promoter Settings'});
 
         new Setting(containerEl)
             .setName('Show for assigned commands')
@@ -110,7 +108,16 @@ export class KeyPromoterSettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     });
 
-            });
+            }).addExtraButton(button => {
+                button
+                    .setIcon("rotate-ccw")
+                    .setTooltip("Reset to default")
+                    .onClick(async () => {
+                        this.plugin.settings.notificationTimeout = DEFAULT_SETTINGS.notificationTimeout;
+                        await this.plugin.saveSettings();
+                        this.display();
+                    });
+        });
 
         new Setting(containerEl)
             .setName("Export template")
@@ -124,6 +131,16 @@ export class KeyPromoterSettingsTab extends PluginSettingTab {
                        await this.plugin.saveSettings();
                     });
                 textArea.inputEl.setAttr("rows", 8);
-            });
+                textArea.inputEl.setAttr("cols", 50);
+            }).addExtraButton(button => {
+            button
+                .setIcon("rotate-ccw")
+                .setTooltip("Reset to default")
+                .onClick(async () => {
+                    this.plugin.settings.template = DEFAULT_SETTINGS.template;
+                    await this.plugin.saveSettings();
+                    this.display();
+                });
+        });
     }
 }

@@ -1,15 +1,13 @@
-import {Command, Hotkey, normalizePath, Notice, Platform, Plugin} from 'obsidian';
+import {Command, Hotkey, normalizePath, Notice, Platform, Plugin, TFile, UserEvent} from 'obsidian';
 import {DEFAULT_SETTINGS, KeyPromoterSettings, KeyPromoterSettingsTab} from "./settings";
 import {around, dedupe} from "monkey-around";
 import {StatisticsModal} from "./StatisticsModal";
 
-declare global {
-    function sleep(ms: number): Promise<void>;
-}
-
 declare module "obsidian" {
     interface App {
-        setting: SettingModal
+        setting: SettingModal,
+        commands: CommandManager,
+        hotkeyManager: HotkeyManager,
     }
     interface SettingModal {
         open(): void;
@@ -18,8 +16,18 @@ declare module "obsidian" {
     interface HotkeySettingTab {
         setQuery(query: string): void;
     }
-    interface Notice {
-        noticeEl: HTMLElement;
+    interface CommandManager {
+        executeCommandById(id: string, evt?: UserEvent): boolean;
+        findCommand(id: string): Command | undefined;
+        commands: Record<string, Command>;
+        editorCommands: Record<string, Command>;
+    }
+    interface CustomHotkey {
+        modifiers: string[]
+        key: string
+    }
+    interface HotkeyManager {
+        customKeys: Record<string, CustomHotkey[]>;
     }
 }
 
@@ -33,13 +41,16 @@ export default class KeyPromoterPlugin extends Plugin {
     }
 
     async onload(): Promise<void> {
-        console.log('loading plugin key promoter');
+        console.log('loading plugin Key Promoter ' + this.manifest.version);
         await this.loadSettings();
 
-        //@ts-ignore
+
         this.uninstallCommand = around(this.app.commands, {
+            //@ts-expect-error
+            // eslint-disable-next-line @typescript-eslint/ban-types
             executeCommandById(oldMethod: Function) {
                 return dedupe("key-promoter", oldMethod, function (...args: any) {
+                    console.log("testing");
                     const result = oldMethod && oldMethod.apply(this, args);
 
                     //@ts-ignore
@@ -61,32 +72,12 @@ export default class KeyPromoterPlugin extends Plugin {
                         return result;
                     }
 
-                    const hotkeys: string[] = [];
-                    if(command.hotkeys) {
-                        command.hotkeys.forEach((hotkey: Hotkey) => {
-                            let hotkeyDescription = "";
-                            hotkeyDescription += hotkey.modifiers.map(modifier => {
-                                if (modifier === "Mod") {
-                                    return "Ctrl/Cmd";
-                                }
-                                if (modifier === "Meta") {
-                                    return "Win/Cmd";
-                                }
-                                return modifier;
-                            }).join("+");
-                            hotkeyDescription += "+" + hotkey.key;
-                            hotkeys.push(hotkeyDescription);
-                        });
-                    }
-
-
                     const timeout = keyPromoterPlugin.settings.notificationTimeout;
-                    new Notice(command.name + " via " + hotkeys.join(), timeout * 1000);
+                    new Notice(command.name + " via " + this.app.plugins.plugins["key-promoter"].getHotkeysForCommand(command).join(), timeout * 1000);
                     return result;
                 })
             }
         });
-
 
         this.addSettingTab(new KeyPromoterSettingsTab(this));
 
@@ -100,63 +91,37 @@ export default class KeyPromoterPlugin extends Plugin {
 
         this.addCommand({
             id: 'key-promoter',
-            name: 'Export Hotkeys',
+            name: 'Export hotkeys',
             callback: async () => {
-                if (this.app.vault.getAbstractFileByPath("hotkeys-export.md")) {
-                    new Notice("there is already a exported file");
+                if (this.app.vault.getAbstractFileByPath("hotkeys-export.md") instanceof TFile) {
+                    new Notice("There is already a exported file");
                     return;
                 }
-
-                //@ts-ignore
-                const commands: Command[] = Object.values(this.app.commands.commands);
                 let content = "";
-                commands.forEach((command: Command) => {
-                    let hotkeys = "";
-                    if (!command.hotkeys && !this.settings.showUnassigned) {
-                        return;
-                    }
-                    if (command.hotkeys && !this.settings.showAssigned) {
-                        return;
-                    }
 
 
-                    if (command.hotkeys) {
-                        command.hotkeys.forEach((hotkey: Hotkey) => {
-                            if (hotkey.modifiers) {
-                                const modifiers = hotkey.modifiers.join("+").replace('Mod', Platform.isMacOS ? 'Cmd' : 'Ctrl');
-                                hotkeys = hotkeys.concat(modifiers + " + " + hotkey.key);
-                            } else {
-                                hotkeys = hotkeys.concat(hotkey.key);
-                            }
-                        });
-                    }
-                    if (hotkeys.length == 0) {
-                        if (!this.settings.showUnassigned) {
-                            return;
-                        }
-                        hotkeys = "No hotkey defined";
-                    }
+                for (const command of this.getCommands()) {
+                    const hotkeys = this.getHotkeysForCommand(command);
 
                     const singleCommand = this.settings.template
                         .replace('{{commandId}}', command.id)
                         .replace('{{commandName}}', command.name)
-                        .replace('{{hotkey}}', hotkeys);
+                        .replace('{{hotkey}}', hotkeys.join());
                     content = content.concat(singleCommand);
-                });
+                }
+
 
                 const file = await this.app.vault.create(normalizePath("hotkeys-export.md"), content);
-                await this.app.workspace.activeLeaf.openFile(file, {
+                await this.app.workspace.getLeaf().openFile(file, {
                     state: {mode: 'edit'},
                 })
 
-                new Notice("exported hotkeys");
+                new Notice("Exported hotkeys");
             }
         });
 
         this.registerDomEvent(document, 'click', (event: MouseEvent) => {
             if (event.target == undefined) return;
-            //don't handle anything if there is nothing to show.
-            //if(!this.settings.showAssigned && !this.settings.showUnassigned) return;
 
 
             //@ts-ignore
@@ -177,7 +142,7 @@ export default class KeyPromoterPlugin extends Plugin {
             ];
 
             //don't show notifications when in settings, file explorer, etc.
-            for (let ignoredSelector of ignoredSelectors) {
+            for (const ignoredSelector of ignoredSelectors) {
                 if (this.hasParentSelector(event.target as HTMLElement, ignoredSelector)) return;
             }
 
@@ -191,7 +156,6 @@ export default class KeyPromoterPlugin extends Plugin {
                 return command.name.toLowerCase().contains(label.toLowerCase());
             });
             if (this.settings.threshold != 0 && commands.length > this.settings.threshold) {
-                new Notice("there are to many hotkeys that could fit the action named \"" + label + "\"");
                 return;
             }
 
@@ -203,27 +167,34 @@ export default class KeyPromoterPlugin extends Plugin {
                 }
                 this.saveSettings();
 
-                if (command.hotkeys == undefined) {
-                    if (this.settings.showUnassigned) {
-                        const notice = new Notice("Hotkey for \"" + command.name + "\" is not set", this.settings.notificationTimeout * 1000);
+                const hotkeys = this.getHotkeysForCommand(command);
+                if(hotkeys.length == 0) {
+                    if (!this.settings.showUnassigned) {
+                        return;
+                    }
+                    const notice = new Notice("", this.settings.notificationTimeout * 1000);
+                    notice.noticeEl.createEl('span', {text: 'Hotkey for '});
+                    notice.noticeEl.createEl('b', {text: command.name});
+                    notice.noticeEl.createEl('span', {text: ' is not set'});
+                    notice.noticeEl.onClickEvent(async () => {
+                        this.app.setting.open();
+                        const hotkeySettings = this.app.setting.openTabById('hotkeys');
+                        hotkeySettings.setQuery(command.id);
+                    });
+                } else {
+                    for (const hotkey of hotkeys) {
+                        const notice = new Notice("", this.settings.notificationTimeout * 1000);
+                        notice.noticeEl.createEl('span', {text: 'Hotkey for '});
+                        notice.noticeEl.createEl('b', {text: command.name});
+                        notice.noticeEl.createEl('span', {text: ' is '});
+                        notice.noticeEl.createEl('code', {text: hotkey});
                         notice.noticeEl.onClickEvent(async () => {
                             this.app.setting.open();
                             const hotkeySettings = this.app.setting.openTabById('hotkeys');
                             hotkeySettings.setQuery(command.id);
                         });
                     }
-                    return;
-                }
-                if (this.settings.showAssigned) {
-                    command.hotkeys.forEach((hotkey: Hotkey) => {
-                        const modifiers = hotkey.modifiers.join("+").replace('Mod', Platform.isMacOS ? 'Cmd' : 'Ctrl');
-                        const notice = new Notice("Hotkey for \"" + command.name + "\" is \"" + modifiers + " + " + hotkey.key + "\"", this.settings.notificationTimeout * 1000);
-                        notice.noticeEl.onClickEvent(async () => {
-                            this.app.setting.open();
-                            const hotkeySettings = this.app.setting.openTabById('hotkeys');
-                            hotkeySettings.setQuery(command.id);
-                        });
-                    });
+
                 }
             });
         });
@@ -234,6 +205,39 @@ export default class KeyPromoterPlugin extends Plugin {
             this.uninstallCommand();
         }
         console.log('unloading plugin key promoter');
+    }
+
+    getCommands(): Set<Command> {
+        const result = new Set<Command>();
+        for (const command of Object.values(this.app.commands.commands)) {
+            result.add(command);
+        }
+        for (const command of Object.values(this.app.commands.editorCommands)) {
+            result.add(command);
+        }
+        return result;
+}
+
+    getHotkeysForCommand(command: Command): string[] {
+        let hotkeys: string[] = [];
+        if (this.app.hotkeyManager.customKeys[command.id]) {
+            this.app.hotkeyManager.customKeys[command.id].forEach((hotkey: Hotkey) => {
+                if (hotkey.modifiers) {
+                    const modifiers = hotkey.modifiers.join("+").replace('Mod', Platform.isMacOS ? 'Cmd' : 'Ctrl');
+                    hotkeys = hotkeys.concat(modifiers + " + " + hotkey.key);
+                } else {
+                    hotkeys = hotkeys.concat(hotkey.key);
+                }
+            })
+        }else if (command.hotkeys){
+            command.hotkeys.forEach((hotkey: Hotkey) => {
+                if (hotkey.modifiers) {
+                    const modifiers = hotkey.modifiers.join("+").replace('Mod', Platform.isMacOS ? 'Cmd' : 'Ctrl');
+                    hotkeys = hotkeys.concat(modifiers + " + " + hotkey.key);
+                }
+            })
+        }
+        return hotkeys;
     }
 
     async loadSettings(): Promise<void> {
