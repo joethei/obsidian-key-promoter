@@ -94,7 +94,7 @@ export default class KeyPromoterPlugin extends Plugin {
             name: 'Export hotkeys',
             callback: async () => {
                 if (this.app.vault.getAbstractFileByPath("hotkeys-export.md") instanceof TFile) {
-                    new Notice("There is already a exported file");
+                    new Notice("There is already a exported file, delete the hotkeys-export.md file from your vault first");
                     return;
                 }
                 let content = "";
@@ -173,10 +173,10 @@ export default class KeyPromoterPlugin extends Plugin {
                         return;
                     }
                     const notice = new Notice("", this.settings.notificationTimeout * 1000);
-                    notice.noticeEl.createEl('span', {text: 'Hotkey for '});
-                    notice.noticeEl.createEl('b', {text: command.name});
-                    notice.noticeEl.createEl('span', {text: ' is not set'});
-                    notice.noticeEl.onClickEvent(async () => {
+                    notice.messageEl.createEl('span', {text: 'Hotkey for '});
+                    notice.messageEl.createEl('b', {text: command.name});
+                    notice.messageEl.createEl('span', {text: ' is not set'});
+                    notice.messageEl.onClickEvent(async () => {
                         this.app.setting.open();
                         const hotkeySettings = this.app.setting.openTabById('hotkeys');
                         hotkeySettings.setQuery(command.id);
@@ -184,11 +184,11 @@ export default class KeyPromoterPlugin extends Plugin {
                 } else {
                     for (const hotkey of hotkeys) {
                         const notice = new Notice("", this.settings.notificationTimeout * 1000);
-                        notice.noticeEl.createEl('span', {text: 'Hotkey for '});
-                        notice.noticeEl.createEl('b', {text: command.name});
-                        notice.noticeEl.createEl('span', {text: ' is '});
-                        notice.noticeEl.createEl('code', {text: hotkey});
-                        notice.noticeEl.onClickEvent(async () => {
+                        notice.messageEl.createEl('span', {text: 'Hotkey for '});
+                        notice.messageEl.createEl('b', {text: command.name});
+                        notice.messageEl.createEl('span', {text: ' is '});
+                        notice.messageEl.createEl('code', {text: hotkey});
+                        notice.messageEl.onClickEvent(async () => {
                             this.app.setting.open();
                             const hotkeySettings = this.app.setting.openTabById('hotkeys');
                             hotkeySettings.setQuery(command.id);

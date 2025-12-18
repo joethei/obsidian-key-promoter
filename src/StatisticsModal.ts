@@ -1,4 +1,4 @@
-import {Command, Modal} from "obsidian";
+import {Command, Modal, Setting, SettingGroup} from "obsidian";
 import KeyPromoterPlugin from "./main";
 
 export class StatisticsModal extends Modal {
@@ -10,60 +10,72 @@ export class StatisticsModal extends Modal {
         this.plugin = plugin;
     }
 
-    onOpen() {
+    onOpen(): void {
         this.modalEl.addClass("key-promoter-modal");
         const {contentEl} = this;
         contentEl.empty();
 
-        contentEl.createEl("h1", {text: "Most used commands"});
+        this.setTitle("Command statistics");
 
-        const mouseStatistics = contentEl.createDiv("mouse");
-        mouseStatistics.createEl("h2", {text: "Mouse"});
-
-        const mouseTable = mouseStatistics.createEl("table");
-        const mouseTableHeader = mouseTable.createTHead();
-        mouseTableHeader.createEl("th", {text: "Usage Count"});
-        mouseTableHeader.createEl("th", {text: "Command"});
-        mouseTableHeader.createEl("th", {text: "Hotkey"});
-        const mouseTableContent = mouseTable.createTBody();
+        const mouseGroup = new SettingGroup(contentEl).setHeading("Mouse");
 
         const mouseMap = new Map<string, number>();
         Object.each(this.plugin.settings.mouseStatistics, (value, key) => {
             mouseMap.set(key, value);
         });
+        const sortedMouseMap = new Map([...mouseMap.entries()].sort((a, b) => b[1] - a[1]));
 
-        mouseMap.forEach((value, key) => {
+        sortedMouseMap.forEach((value, key) => {
             const command: Command = this.plugin.app.commands.findCommand(key);
             if(!command) return;
-            const tableRow = mouseTableContent.createEl("tr");
-            tableRow.createEl("td", {text: String(value)});
-            tableRow.createEl("td", {text: command.name});
-            const hotkeys = this.plugin.getHotkeysForCommand(command);
-            tableRow.createEl("td", {text: hotkeys.join()});
+
+            mouseGroup.addSetting(setting => {
+                setting
+                    .setName(command.name)
+                    .setDesc(this.plugin.getHotkeysForCommand(command).join())
+                    .controlEl.createSpan({text: String(value)});
+                setting.addExtraButton(button => {
+                    button
+                        .setIcon('command')
+                        .setTooltip('Assign new hotkey')
+                        .onClick(() => {
+                            this.close();
+                            this.app.setting.open();
+                            const hotkeySettings = this.app.setting.openTabById('hotkeys');
+                            hotkeySettings.setQuery(command.id);
+                        });
+                });
+                });
         });
 
-        const keyboardStatistics = contentEl.createDiv("keyboard");
+        const keyboardGroup = new SettingGroup(contentEl).setHeading("Keyboard");
 
-        keyboardStatistics.createEl("h2", {text: "Keyboard"});
-        const keyboardTable = keyboardStatistics.createEl("table");
-        const keyboardTableHeader = keyboardTable.createTHead();
-        keyboardTableHeader.createEl("th", {text: "Usage count"});
-        keyboardTableHeader.createEl("th", {text: "Command"});
-        keyboardTableHeader.createEl("th", {text: "Hotkey"});
-
-        const keyboardTableContent = keyboardTable.createTBody();
         const keyboardMap = new Map<string, number>();
         Object.each(this.plugin.settings.keyboardStatistics, (value, key) => {
             keyboardMap.set(key, value);
         });
+        const sortedKeyboardMap = new Map([...keyboardMap.entries()].sort((a, b) => b[1] - a[1]));
 
-        keyboardMap.forEach((value, key) => {
+        sortedKeyboardMap.forEach((value, key) => {
             const command: Command = this.plugin.app.commands.findCommand(key);
-            const tableRow = keyboardTableContent.createEl("tr");
-            tableRow.createEl("td", {text: String(value)});
-            tableRow.createEl("td", {text: command.name});
-            const hotkeys = this.plugin.getHotkeysForCommand(command);
-            tableRow.createEl("td", {text: hotkeys.join()});
+            if (!command) return;
+            keyboardGroup.addSetting(setting => {
+                setting
+                    .setName(command.name)
+                    .setDesc(this.plugin.getHotkeysForCommand(command).join())
+                    .controlEl.createSpan({text: String(value)});
+               setting.addExtraButton(button => {
+                  button
+                      .setIcon('command')
+                      .setTooltip('Assign new hotkey')
+                      .onClick(() => {
+                          this.close();
+                          this.app.setting.open();
+                          const hotkeySettings = this.app.setting.openTabById('hotkeys');
+                          hotkeySettings.setQuery(command.id);
+                      });
+               });
+            });
         });
     }
 }
