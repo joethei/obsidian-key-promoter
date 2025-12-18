@@ -9,14 +9,13 @@ Plugin for [Obsidian](https://obsidian.md/)
 
 ---
 ## Key Promotion
-![showcase](https://i.joethei.space/syvxdr4Wd1.gif)
 
 When you use the mouse on a button this plugin will show a notification with the assigned shortcut for that action.
 
 For buttons that don't have shortcuts assigned the plugin
 will show you the name of the command to assign in the settings.
 
-> [!warning] Buttons are not directly associated with commands in Obsidian.
+> [!WARNING] Buttons are not directly associated with commands in Obsidian.
 > Sometimes even the name of a button does not match the name of the command
 > that executes the same action.
 > 
