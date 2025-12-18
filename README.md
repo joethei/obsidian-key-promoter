@@ -16,15 +16,13 @@ When you use the mouse on a button this plugin will show a notification with the
 For buttons that don't have shortcuts assigned the plugin
 will show you the name of the command to assign in the settings.
 
-> ⚠ **Buttons are not directly associated with commands in Obsidian.**
-> 
+> [!warning] Buttons are not directly associated with commands in Obsidian.
 > Sometimes even the name of a button does not match the name of the command
 > that executes the same action.
 > 
 > As a result you might get multiple different notifications when pressing one button.
 
 ## Description of Actions
-![description of actions gif showcase](https://i.joethei.space/Obsidian_TPtxvJKucj.gif)
 Shows a notification when pressing a hotkey with the called command and its
 associated hotkey.
 Useful for presentations.
@@ -33,7 +31,6 @@ Needs to be enabled in the settings.
 
 ## Statistics
 Shows your most used commands.
-![Statistics demo screenshot](https://i.joethei.space/Obsidian_TTidZwt2QH.png)
 You can open this menu with the `Key Promoter: Statistics` Command.
 
 ---
